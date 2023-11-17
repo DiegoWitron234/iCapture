@@ -13,6 +13,11 @@
         android:theme="@style/Theme.ICapture"
         tools:targetApi="31">
         <activity
+            android:name=".PanelProyectos"
+            android:exported="false"
+            android:label="@string/title_activity_panel_proyectos"
+            android:theme="@style/Theme.ICapture" />
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"

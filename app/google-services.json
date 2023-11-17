@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "985747848872",
+    "project_id": "icapture-23689",
+    "storage_bucket": "icapture-23689.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:985747848872:android:e35de4f4ac20d9b4b24c9d",
+        "android_client_info": {
+          "package_name": "com.miraimx.icapture"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYJKPHa5yNCg89dBqvooQ3Nmdm30pWqIQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
