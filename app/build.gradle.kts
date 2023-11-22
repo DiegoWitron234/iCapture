@@ -70,6 +70,8 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
+    implementation("androidx.compose.runtime:runtime-livedata:1.5.4")
+
     // Firebase BOM
     implementation(platform("com.google.firebase:firebase-bom:32.5.0"))
     // Firebase analytics

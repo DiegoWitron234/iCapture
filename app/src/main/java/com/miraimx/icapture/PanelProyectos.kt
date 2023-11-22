@@ -1,7 +1,6 @@
 package com.miraimx.icapture
 
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,19 +23,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -44,11 +42,6 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.miraimx.icapture.ui.theme.ICaptureTheme
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
 
 class PanelProyectos : ComponentActivity() {
@@ -74,7 +67,7 @@ fun PanelProyectosScreen() {
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
     var projectName by remember { mutableStateOf(TextFieldValue("")) }
-    var selectedProject by remember { mutableStateOf<String?>(null) }
+    //var selectedProject by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -87,14 +80,9 @@ fun PanelProyectosScreen() {
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        // código para mostrar la lista de proyectos
-        val projectList = getProjectListForUser()
-        if (projectList.isEmpty()) {
-            Text("Aún no se han creado proyectos")
-        } else {
-            // Mostrar la lista de proyectos
-            ProjectList(projectList) { selectedProject = it }
-        }
+
+        ProjectListScreen()
+
 
         if (showDialog) {
             AlertDialog(
@@ -131,6 +119,51 @@ fun PanelProyectosScreen() {
     }
 }
 
+/*
+@Composable
+fun ProjectList(onItemClick: (String) -> Unit) {
+    val currentUserUid = FirebaseAuth.getInstance().currentUser?.uid
+    val projectList: MutableList<String> = mutableListOf()
+
+    if (currentUserUid != null) {
+        val databaseReference: DatabaseReference =
+            FirebaseDatabase.getInstance().getReference("$currentUserUid")
+
+        databaseReference.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                for (projectSnapshot in snapshot.children) {
+                    // Agregar el nombre del proyecto a la lista
+                    projectList.add(projectSnapshot.key!!)
+                    Log.d("Mensaje", "Proyecto encontrado: ${projectSnapshot.key}")
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Manejar errores, si es necesario
+                println("Error al obtener la lista de proyectos: ${error.message}")
+            }
+        })
+    }
+
+    // Mostrar la lista de proyectos
+    // onItemClick se llama cuando se hace clic en un elemento
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(8.dp)
+    ) {
+        items(projectList) { project ->
+            TextButton(
+                onClick = { onItemClick(project) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(project)
+            }
+            Divider()
+        }
+    }
+}
+ */
+
 @Composable
 fun ProjectList(projects: List<String>, onItemClick: (String) -> Unit) {
     // Mostrar la lista de proyectos
@@ -151,21 +184,35 @@ fun ProjectList(projects: List<String>, onItemClick: (String) -> Unit) {
     }
 }
 
-// Obtener la lista de proyectos del usuario actual desde la base de datos
-fun getProjectListForUser(): List<String> {
+@Composable
+fun ProjectListScreen() {
+    var selectedProject by remember { mutableStateOf("") }
+    val projectList by getProjectListForUser().observeAsState(initial = emptyList())
+
+    if (projectList.isEmpty()) {
+        Text("Aún no se han creado proyectos")
+    } else {
+        ProjectList(projectList) { selectedProject = it }
+    }
+}
+
+
+fun getProjectListForUser(): LiveData<List<String>> {
     val currentUserUid = FirebaseAuth.getInstance().currentUser?.uid
-    val projectList: MutableList<String> = mutableListOf()
+    val projectList: MutableLiveData<List<String>> = MutableLiveData()
 
     if (currentUserUid != null) {
         val databaseReference: DatabaseReference =
-            FirebaseDatabase.getInstance().getReference("proyectos/$currentUserUid")
+            FirebaseDatabase.getInstance().getReference("$currentUserUid")
 
-        databaseReference.addListenerForSingleValueEvent(object : ValueEventListener {
+        databaseReference.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                val list = mutableListOf<String>()
                 for (projectSnapshot in snapshot.children) {
                     // Agregar el nombre del proyecto a la lista
-                    projectList.add(projectSnapshot.key!!)
+                    list.add(projectSnapshot.key!!)
                 }
+                projectList.value = list
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -178,19 +225,21 @@ fun getProjectListForUser(): List<String> {
     return projectList
 }
 
+
 // Agregar el nuevo proyecto a la base de datos
 fun createNewProject(projectName: String) {
     val currentUserUid = FirebaseAuth.getInstance().currentUser?.uid
 
     if (currentUserUid != null) {
         val databaseReference: DatabaseReference =
-            FirebaseDatabase.getInstance().getReference("proyectos/$currentUserUid/$projectName")
+            FirebaseDatabase.getInstance().getReference("$currentUserUid/$projectName")
 
         // Asignar un valor vacío al proyecto (puedes asignar algún valor específico si es necesario)
         databaseReference.setValue("")
             .addOnSuccessListener {
                 // Manejar el éxito de la operación, si es necesario
                 println("Nuevo proyecto creado: $projectName")
+                //Toast.makeText(it, "Nuevo proyecto creado", Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener { e ->
                 // Manejar el fallo de la operación, si es necesario
