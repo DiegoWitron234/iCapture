@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">iCapture</string>
     <string name="title_activity_panel_proyectos">PanelProyectos</string>
+    <string name="title_activity_galeria">Galeria</string>
 </resources>

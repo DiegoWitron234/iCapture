@@ -1,5 +1,7 @@
 package com.miraimx.icapture
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -17,9 +19,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,27 +31,32 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.ktx.Firebase
 import com.miraimx.icapture.ui.theme.ICaptureTheme
+import kotlinx.coroutines.launch
 
 
 class PanelProyectos : ComponentActivity() {
@@ -67,7 +75,6 @@ class PanelProyectos : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PanelProyectosScreen() {
     var showDialog by remember { mutableStateOf(false) }
@@ -81,6 +88,9 @@ fun PanelProyectosScreen() {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
+        MyActionBar()
+
         // Botón para crear un nuevo proyecto
         IconButton(onClick = { showDialog = true }) {
             Icon(imageVector = Icons.Default.Add, contentDescription = "Crear Proyecto")
@@ -112,6 +122,45 @@ fun PanelProyectosScreen() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MyActionBar() {
+    var showMenu by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val activity = LocalContext.current as? Activity
+
+    TopAppBar(
+        title = { Text("iCapture") },
+        actions = {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(Icons.Filled.MoreVert, contentDescription = null)
+            }
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Configuración") }, onClick = {
+                        //Manejar el clic
+                    })
+                DropdownMenuItem(
+                    text = { Text("Cerrar Sesión") }, onClick = {
+                        //Manejar el clic
+                        android.app.AlertDialog.Builder(context)
+                            .setMessage("¿Seguro que quieres cerrar la sesión?")
+                            .setPositiveButton("Salir") { _, _ -> // Acción de confirmación
+                                Firebase.auth.signOut()
+                                Toast.makeText(context, "Sesión cerrada", Toast.LENGTH_SHORT).show()
+                                activity?.finish()
+                            }
+                            .setNegativeButton("Cancelar", null)
+                            .show()
+                    })
+            }
+        }
+    )
+}
+
 @Composable
 fun ProjectList(projects: List<String>, onItemClick: (String) -> Unit) {
     // Mostrar la lista de proyectos
@@ -127,6 +176,10 @@ fun ProjectList(projects: List<String>, onItemClick: (String) -> Unit) {
 
 @Composable
 fun ProjectListItem(project: String, onItemClick: (String) -> Unit) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val uid = FirebaseAuth.getInstance().currentUser?.uid
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -138,7 +191,20 @@ fun ProjectListItem(project: String, onItemClick: (String) -> Unit) {
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyMedium
         )
-        IconButton(onClick = { onItemClick(project) }) {
+        IconButton(onClick = {
+            // Llama a la función onItemClick para realizar cualquier acción adicional
+            onItemClick(project)
+
+            // Código para abrir la actividad Galeria
+            val intent = Intent(context, Galeria::class.java)
+            intent.putExtra("projectName", project)
+            intent.putExtra("uid", uid)
+
+            coroutineScope.launch {
+                // Utiliza launch para iniciar una nueva coroutine
+                context.startActivity(intent)
+            }
+        }) {
             Icon(imageVector = Icons.Default.Edit, contentDescription = "Editar")
         }
     }
