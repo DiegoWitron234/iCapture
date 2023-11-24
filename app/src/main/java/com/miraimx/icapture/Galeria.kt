@@ -2,6 +2,7 @@ package com.miraimx.icapture
 
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -78,24 +79,30 @@ fun Galeria(uid: String, projectName: String) {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
         // Convertir el Bitmap a un ByteArray
         val baos = ByteArrayOutputStream()
-        bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, baos)
-        val data = baos.toByteArray()
+        if(bitmap != null){
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+            val data = baos.toByteArray()
 
-        // Crear una referencia a Firebase Storage
-        val storageReference = FirebaseStorage.getInstance().reference
-        val imageReference = storageReference.child("$uid/$projectName/${System.currentTimeMillis()}.jpg")
+            // Crear una referencia a Firebase Storage
+            val storageReference = FirebaseStorage.getInstance().reference
+            val imageReference = storageReference.child("$uid/$projectName/${System.currentTimeMillis()}.jpg")
 
-        // Subir el ByteArray a Firebase Storage
-        val uploadTask = imageReference.putBytes(data)
-        uploadTask.addOnSuccessListener {
-            // La foto se ha subido exitosamente a Firebase Storage
-            // Ahora podemos actualizar la UI para mostrar la nueva foto
-            imageReference.downloadUrl.addOnSuccessListener { uri ->
-                images.value = images.value + uri.toString()
+            // Subir el ByteArray a Firebase Storage
+            val uploadTask = imageReference.putBytes(data)
+            uploadTask.addOnSuccessListener {
+                // La foto se ha subido exitosamente a Firebase Storage
+                // Ahora podemos actualizar la UI para mostrar la nueva foto
+                imageReference.downloadUrl.addOnSuccessListener { uri ->
+                    images.value = images.value + uri.toString()
+                }
+            }.addOnFailureListener {
+                // Hubo un error al subir la foto a Firebase Storage
             }
-        }.addOnFailureListener {
-            // Hubo un error al subir la foto a Firebase Storage
+        } else{
+            Log.d("Mensaje", "Bitmap vacío")
+            Toast.makeText(context, "Foto cancelada", Toast.LENGTH_SHORT).show()
         }
+
     }
 
     LaunchedEffect(uid, projectName) {
@@ -127,7 +134,9 @@ fun Galeria(uid: String, projectName: String) {
             onClick = {
                         launcher.launch()
                       },
-            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp),
             containerColor = MaterialTheme.colorScheme.primary
         ) {
             Icon(Icons.Filled.AddCircle, contentDescription = "Tomar foto")
@@ -164,7 +173,9 @@ fun ImageItem(imageUrl: String) {
     }
 
     image.value?.let { bitmap ->
-        Box(modifier = Modifier.aspectRatio(1f).clickable { showDialog.value = true }) {
+        Box(modifier = Modifier
+            .aspectRatio(1f)
+            .clickable { showDialog.value = true }) {
             Image(bitmap = bitmap.asImageBitmap(), contentDescription = null)
         }
 

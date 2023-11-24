@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -60,6 +61,9 @@ import kotlinx.coroutines.launch
 
 
 class PanelProyectos : ComponentActivity() {
+    private var backPressedTime: Long = 0
+    private val backPressedInterval: Long = 2000
+    // Intervalo de tiempo para considerar dos pulsaciones seguidas
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -72,6 +76,23 @@ class PanelProyectos : ComponentActivity() {
                 }
             }
         }
+        // Agregar el callback para el botón "Back"
+        val onBackPressedCallback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Obtener el tiempo actual
+                val currentTime = System.currentTimeMillis()
+
+                if (currentTime - backPressedTime < backPressedInterval) {
+                    // Si se pulsa dos veces dentro del intervalo, cerrar la aplicación
+                    finishAffinity()
+                } else {
+                    // Si no, mostrar mensaje para volver a pulsar
+                    backPressedTime = currentTime
+                    Toast.makeText(applicationContext, "Presiona de nuevo para salir", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
     }
 }
 
@@ -142,6 +163,8 @@ fun MyActionBar() {
                 DropdownMenuItem(
                     text = { Text("Configuración") }, onClick = {
                         //Manejar el clic
+                        val intent = Intent(context, Configuracion::class.java)
+                        context.startActivity(intent)
                     })
                 DropdownMenuItem(
                     text = { Text("Cerrar Sesión") }, onClick = {
