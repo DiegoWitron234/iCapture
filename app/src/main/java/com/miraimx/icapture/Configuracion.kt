@@ -61,7 +61,10 @@ fun ConfiguracionMenu() {
             val intent = Intent(context, CambiarCorreo::class.java)
             context.startActivity(intent)
         })
-        ConfiguracionItem(nombre = "Cambiar contraseña", onClick = { /* Acción para cambiar contraseña */ })
+        ConfiguracionItem(nombre = "Cambiar contraseña", onClick = {
+            val intent = Intent(context, CambiarContrasenia::class.java)
+            context.startActivity(intent)
+        })
     }
 }
 

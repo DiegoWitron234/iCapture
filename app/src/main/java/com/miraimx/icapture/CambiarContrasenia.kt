@@ -39,13 +39,18 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
-
 import com.miraimx.icapture.ui.theme.ICaptureTheme
 
-class CambiarCorreo : ComponentActivity() {
+class CambiarContraseniaViewModel : ViewModel() {
+
+}
+
+class CambiarContrasenia : ComponentActivity() {
+    private val cambiarContraseniaViewModel = CambiarContraseniaViewModel()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -55,7 +60,7 @@ class CambiarCorreo : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    CambiarCorreoScreen()
+                    Greeting()
                 }
             }
         }
@@ -64,11 +69,12 @@ class CambiarCorreo : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CambiarCorreoScreen() {
+fun Greeting() {
     var isPasswordVisible by remember { mutableStateOf(false) }
     var currentEmail by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var newEmail by remember { mutableStateOf("") }
+    var currentPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmarPassword by remember { mutableStateOf("") }
     val user = Firebase.auth.currentUser!!
     val context = LocalContext.current
     val activity = LocalContext.current as Activity
@@ -84,7 +90,7 @@ fun CambiarCorreoScreen() {
         OutlinedTextField(
             value = currentEmail,
             onValueChange = { currentEmail = it },
-            label = { Text("Correo actual") },
+            label = { Text("Correo") },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Outlined.MailOutline,
@@ -102,9 +108,9 @@ fun CambiarCorreoScreen() {
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Contraseña") },
+            value = currentPassword,
+            onValueChange = { currentPassword = it },
+            label = { Text("Contraseña actual") },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Outlined.Lock,
@@ -133,17 +139,57 @@ fun CambiarCorreoScreen() {
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
-            value = newEmail,
-            onValueChange = { newEmail = it },
-            label = { Text("Nuevo correo") },
+            value = newPassword,
+            onValueChange = { newPassword = it },
+            label = { Text("Nueva contraseña") },
             leadingIcon = {
                 Icon(
-                    imageVector = Icons.Outlined.MailOutline,
+                    imageVector = Icons.Outlined.Lock,
                     contentDescription = null
                 )
             },
+            trailingIcon = {
+                IconButton(
+                    onClick = { isPasswordVisible = !isPasswordVisible }
+                ) {
+                    Icon(
+                        imageVector = if (isPasswordVisible) Icons.Outlined.Check else Icons.Outlined.Lock,
+                        contentDescription = null
+                    )
+                }
+            },
+            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = confirmarPassword,
+            onValueChange = { confirmarPassword = it },
+            label = { Text("Confirmar contraseña") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = null
+                )
+            },
+            trailingIcon = {
+                IconButton(
+                    onClick = { isPasswordVisible = !isPasswordVisible }
+                ) {
+                    Icon(
+                        imageVector = if (isPasswordVisible) Icons.Outlined.Check else Icons.Outlined.Lock,
+                        contentDescription = null
+                    )
+                }
+            },
+            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done
             ),
             modifier = Modifier
@@ -154,34 +200,48 @@ fun CambiarCorreoScreen() {
 
         Button(
             onClick = {
-                val credential = EmailAuthProvider
-                    .getCredential(currentEmail, password)
-                user.reauthenticate(credential)
-                    .addOnCompleteListener { task ->
+                val credential = EmailAuthProvider.getCredential(currentEmail, currentPassword)
+                user.reauthenticate(credential).addOnCompleteListener { task ->
                         if (task.isSuccessful) {
                             Log.d("Mensaje", "Usuario reautenticado.")
-                            user.updateEmail(newEmail)
-                                .addOnCompleteListener { task ->
-                                    if (task.isSuccessful) {
-                                        Log.d("Mensaje", "Correo del usuario cambiado.")
-                                        Toast.makeText(
-                                            context,
-                                            "Correo cambiado",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        activity.finish()
-                                    } else {
-                                        Log.w("Mensaje", "Cambio de correo fallido.", task.exception)
-                                        Toast.makeText(
-                                            context,
-                                            "Ha ocurrido un error",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                            if (newPassword == confirmarPassword){
+                                user.updatePassword(newPassword)
+                                    .addOnCompleteListener { task ->
+                                        if (task.isSuccessful) {
+                                            Log.d("Mensaje", "Contraseña del usuario cambiada.")
+                                            Toast.makeText(
+                                                context,
+                                                "Contraseña cambiada",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            activity.finish()
+                                        } else {
+                                            Log.w(
+                                                "Mensaje",
+                                                "Cambio de contraseña fallido.",
+                                                task.exception
+                                            )
+                                            Toast.makeText(
+                                                context,
+                                                "Ha ocurrido un error",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
                                     }
-                                }
+                            }else{
+                                Toast.makeText(
+                                    context,
+                                    "Las contraseñas no coinciden",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         } else {
                             Log.w("Mensaje", "Reautenticación fallida.", task.exception)
-                            Toast.makeText(context, "Por favor, verifica tus credenciales.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Por favor, verifica tus credenciales.",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
             },
@@ -189,15 +249,7 @@ fun CambiarCorreoScreen() {
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text("Cambiar Correo")
+            Text("Cambiar Contraseña")
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun CambiarCorreoPreview() {
-    ICaptureTheme {
-        CambiarCorreoScreen()
     }
 }
