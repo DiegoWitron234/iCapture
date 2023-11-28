@@ -2,4 +2,6 @@
     <string name="app_name">iCapture</string>
     <string name="title_activity_panel_proyectos">PanelProyectos</string>
     <string name="title_activity_galeria">Galeria</string>
+    <string name="title_activity_configuracion">Configuracion</string>
+    <string name="title_activity_cambiar_correo">CambiarCorreo</string>
 </resources>
