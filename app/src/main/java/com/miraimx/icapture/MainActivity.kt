@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -198,22 +199,12 @@ fun LoginScreen(auth: FirebaseAuth) {
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "¿Olvidaste tu contraseña?",
-                color = MaterialTheme.colorScheme.primary,
-                textDecoration = TextDecoration.Underline
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
                 text = "Crear cuenta",
                 color = MaterialTheme.colorScheme.primary,
-                textDecoration = TextDecoration.Underline
+                textDecoration = TextDecoration.Underline,
+                modifier = Modifier.clickable{
+                    context.startActivity(Intent(context, RegistrarUsuario::class.java))
+                }
             )
         }
     }

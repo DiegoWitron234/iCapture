@@ -1,14 +1,15 @@
 package com.miraimx.icapture
 
+import android.app.Activity
+import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.launch
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -44,7 +45,6 @@ import com.google.firebase.storage.FirebaseStorage
 import com.miraimx.icapture.ui.theme.ICaptureTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 
 class Galeria : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +60,7 @@ class Galeria : ComponentActivity() {
                 ) {
                     if (uid != null && projectName != null) {
                         Galeria(uid = uid, projectName = projectName)
-                    } else{
+                    } else {
                         Toast.makeText(baseContext, "Ha ocurrido un error", Toast.LENGTH_SHORT)
                             .show()
                         finish()
@@ -69,6 +69,7 @@ class Galeria : ComponentActivity() {
             }
         }
     }
+
 }
 
 @Composable
@@ -76,34 +77,27 @@ fun Galeria(uid: String, projectName: String) {
     val images = remember { mutableStateOf(emptyList<String>()) }
     val imagesLoaded = remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
-        // Convertir el Bitmap a un ByteArray
-        val baos = ByteArrayOutputStream()
-        if(bitmap != null){
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
-            val data = baos.toByteArray()
 
-            // Crear una referencia a Firebase Storage
-            val storageReference = FirebaseStorage.getInstance().reference
-            val imageReference = storageReference.child("$uid/$projectName/${System.currentTimeMillis()}.jpg")
 
-            // Subir el ByteArray a Firebase Storage
-            val uploadTask = imageReference.putBytes(data)
-            uploadTask.addOnSuccessListener {
-                // La foto se ha subido exitosamente a Firebase Storage
-                // Ahora podemos actualizar la UI para mostrar la nueva foto
-                imageReference.downloadUrl.addOnSuccessListener { uri ->
-                    images.value = images.value + uri.toString()
+    val activityResultLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->  //  Recibe los datos de la activity invocada
+            if (result.resultCode == Activity.RESULT_OK) {
+                val arrayList: ArrayList<String>? = result.data?.getStringArrayListExtra("listImagenes")
+                if (arrayList != null) {
+                    val imageUrls = mutableListOf<String>()
+                    val storage = FirebaseStorage.getInstance() // Reutilizar la misma instancia de FirebaseStorage
+                    arrayList.forEach { ruta ->
+                        storage.reference.child(ruta).downloadUrl.addOnSuccessListener { uri ->
+                            imageUrls.add(uri.toString())
+                            if (arrayList.size == imageUrls.size) {
+                                images.value += imageUrls
+                            }
+                        }
+                    }
+                    imagesLoaded.value = true
                 }
-            }.addOnFailureListener {
-                // Hubo un error al subir la foto a Firebase Storage
             }
-        } else{
-            Log.d("Mensaje", "Bitmap vacío")
-            Toast.makeText(context, "Foto cancelada", Toast.LENGTH_SHORT).show()
         }
-
-    }
 
     LaunchedEffect(uid, projectName) {
         val storageReference = FirebaseStorage.getInstance().reference.child("$uid/$projectName")
@@ -132,8 +126,16 @@ fun Galeria(uid: String, projectName: String) {
 
         FloatingActionButton(
             onClick = {
-                        launcher.launch()
-                      },
+                // Crear un Intent para la actividad Camara
+                val intent = Intent(context, Camara::class.java)
+
+                // Pasar datos extras a la actividad Camara
+                intent.putExtra("projectName", projectName)
+                intent.putExtra("uid", uid)
+
+                // Lanzar el IntentSenderRequest usando resultLauncher
+                activityResultLauncher.launch(intent)
+            },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(16.dp),
@@ -184,8 +186,10 @@ fun ImageItem(imageUrl: String) {
                 onDismissRequest = { showDialog.value = false },
                 title = { Text("Imagen seleccionada") },
                 text = {
-                    Image(bitmap = bitmap.asImageBitmap(), contentDescription = null,
-                        modifier = Modifier.fillMaxSize())
+                    Image(
+                        bitmap = bitmap.asImageBitmap(), contentDescription = null,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 },
                 confirmButton = {
                     Button(onClick = { showDialog.value = false }) {

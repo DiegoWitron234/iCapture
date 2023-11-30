@@ -5,4 +5,5 @@
     <string name="title_activity_configuracion">Configuracion</string>
     <string name="title_activity_cambiar_correo">CambiarCorreo</string>
     <string name="title_activity_cambiar_contrasenia">CambiarCorreo</string>
+    <string name="title_activity_camara">Camara</string>
 </resources>
