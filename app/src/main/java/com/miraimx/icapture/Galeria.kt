@@ -45,6 +45,7 @@ import com.google.firebase.storage.FirebaseStorage
 import com.miraimx.icapture.ui.theme.ICaptureTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 
 class Galeria : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -145,6 +146,7 @@ fun Galeria(uid: String, projectName: String) {
         }
     }
 }
+
 
 @Composable
 fun ImageGrid(images: List<String>) {

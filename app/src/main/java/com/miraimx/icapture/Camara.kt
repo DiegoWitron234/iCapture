@@ -3,6 +3,10 @@ package com.miraimx.icapture
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import androidx.exifinterface.media.ExifInterface
 
 import android.net.Uri
 import android.os.Bundle
@@ -48,12 +52,14 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.UploadTask
 import com.miraimx.icapture.ui.theme.ICaptureTheme
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.concurrent.Executor
 
 class Camara : ComponentActivity() {
     private var listaImaenes = mutableListOf<String>()
-    @androidx.annotation.OptIn(BuildCompat.PrereleaseSdkCheck::class) override fun onCreate(savedInstanceState: Bundle?) {
+    @androidx.annotation.OptIn(BuildCompat.PrereleaseSdkCheck::class)
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val uid = intent.getStringExtra("uid")
         val projectName = intent.getStringExtra("projectName")
@@ -78,8 +84,8 @@ class Camara : ComponentActivity() {
                     val arrayList = ArrayList(listaImaenes)
                     datos.putExtra("listImagenes", arrayList)
                     setResult(Activity.RESULT_OK, datos)
-                }else{
-                    Toast.makeText(this@Camara, "La lista está vacias",Toast.LENGTH_SHORT ).show()
+                } else {
+                    Toast.makeText(this@Camara, "La lista está vacias", Toast.LENGTH_SHORT).show()
                 }
                 finish()
             }
@@ -107,15 +113,25 @@ fun Pantalla(uid: String, projectName: String, listaImaenes: MutableList<String>
 
             if (imagenUri.value.isNotEmpty()) {
                 val file = File(imagenUri.value)
-                val fileName = "$uid/$projectName/${System.currentTimeMillis()}.jpg"
+                val fileName = "$uid/$projectName/original/${System.currentTimeMillis()}.jpg"
+                val fileNameMiniatura =
+                    "$uid/$projectName/miniatura/${System.currentTimeMillis()}.jpg"
+
                 //Se agrega a la lista de imagenes la ruta
                 subirFoto(fileName, file).addOnSuccessListener {
-                    listaImaenes.add(fileName)
+                    //listaImaenes.add(fileName)
                     Toast.makeText(context, "Imagen subida", Toast.LENGTH_SHORT).show()
-                    file.delete()
+                }.addOnFailureListener {
+                    //Toast.makeText(context, "No se pudo subir la imagen", Toast.LENGTH_SHORT).show()
+                }
+
+                subirMiniatura(fileNameMiniatura, file).addOnSuccessListener {
+                    listaImaenes.add(fileNameMiniatura)
                 }.addOnFailureListener {
                     Toast.makeText(context, "No se pudo subir la imagen", Toast.LENGTH_SHORT).show()
                 }
+                file.delete()
+
             }
 
             // Coloca el botón en la parte inferior y en el centro de la pantalla
@@ -124,7 +140,7 @@ fun Pantalla(uid: String, projectName: String, listaImaenes: MutableList<String>
                 FloatingActionButton(
                     onClick = {
                         tomarFoto(cameraController, executor, imagenUri)
-                              },
+                    },
                     modifier = Modifier
                         .padding(16.dp),
                 ) {
@@ -163,9 +179,61 @@ private fun tomarFoto(
 
 
 private fun subirFoto(fileName: String, file: File): UploadTask {
-    val storageReference =
-        FirebaseStorage.getInstance().reference.child(fileName)
+    val storageReference = FirebaseStorage.getInstance().reference.child(fileName)
     return storageReference.putFile(Uri.fromFile(file))
+}
+
+private fun subirMiniatura(fileName: String, file: File): UploadTask {
+    val rutaArchivo = file.path
+    // Crear un Bitmap a partir de la imagen original
+    val bitmap = BitmapFactory.decodeFile(rutaArchivo)
+
+    // Obteniendo orientación de la imagen
+    val orientacion = obtenerOrientacion(rutaArchivo)
+
+    // Rotar la imagen
+    val imagenRotada = rotateBitmap(bitmap, orientacion)
+
+    // Crear un Bitmap redimensionado
+    val imageScaled: Bitmap = Bitmap.createScaledBitmap(
+        imagenRotada,
+        imagenRotada.width / 4,
+        imagenRotada.height / 4,
+        false
+    )
+
+    // Comprimir el Bitmap redimensionado en un ByteArrayOutputStream
+    val baos = ByteArrayOutputStream()
+    imageScaled.compress(Bitmap.CompressFormat.JPEG, 50, baos)
+
+    // Convertir el ByteArrayOutputStream en un byte array
+    val data = baos.toByteArray()
+
+    // Obtener una referencia al lugar donde se subirá la imagen
+    val storageReference = FirebaseStorage.getInstance().reference.child(fileName)
+
+    // Subir la imagen redimensionada
+    return storageReference.putBytes(data)
+}
+
+private fun obtenerOrientacion(ruta: String): Int {
+    val exif = ExifInterface(ruta)
+    val orientation =
+        exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+    var rotationDegrees = 0
+
+    when (orientation) {
+        ExifInterface.ORIENTATION_ROTATE_90 -> rotationDegrees = 90
+        ExifInterface.ORIENTATION_ROTATE_180 -> rotationDegrees = 180
+        ExifInterface.ORIENTATION_ROTATE_270 -> rotationDegrees = 270
+    }
+    return rotationDegrees
+}
+
+fun rotateBitmap(source: Bitmap, angle: Int): Bitmap {
+    val matrix = Matrix()
+    matrix.postRotate(angle.toFloat())
+    return Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
 }
 
 @Composable
