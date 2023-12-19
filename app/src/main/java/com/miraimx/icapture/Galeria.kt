@@ -45,7 +45,6 @@ import com.google.firebase.storage.FirebaseStorage
 import com.miraimx.icapture.ui.theme.ICaptureTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 
 class Galeria : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,7 +78,6 @@ fun Galeria(uid: String, projectName: String) {
     val imagesLoaded = remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-
     val activityResultLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->  //  Recibe los datos de la activity invocada
             if (result.resultCode == Activity.RESULT_OK) {
@@ -100,8 +98,9 @@ fun Galeria(uid: String, projectName: String) {
             }
         }
 
+    // Carga las imagenes de la galería
     LaunchedEffect(uid, projectName) {
-        val storageReference = FirebaseStorage.getInstance().reference.child("$uid/$projectName")
+        val storageReference = FirebaseStorage.getInstance().reference.child("$uid/$projectName/miniatura")
         storageReference.listAll()
             .addOnSuccessListener { listResult ->
                 val imageUrls = mutableListOf<String>()
