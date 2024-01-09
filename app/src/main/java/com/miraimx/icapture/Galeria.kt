@@ -12,21 +12,29 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -176,9 +184,7 @@ fun ImageItem(imageUrl: String) {
     }
 
     image.value?.let { bitmap ->
-        Box(modifier = Modifier
-            .aspectRatio(1f)
-            .clickable { showDialog.value = true }) {
+        Box(modifier = Modifier.aspectRatio(1f).clickable { showDialog.value = true }) {
             Image(bitmap = bitmap.asImageBitmap(), contentDescription = null)
         }
 
@@ -187,10 +193,30 @@ fun ImageItem(imageUrl: String) {
                 onDismissRequest = { showDialog.value = false },
                 title = { Text("Imagen seleccionada") },
                 text = {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(), contentDescription = null,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    Column {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(), contentDescription = null,
+                            modifier = Modifier.fillMaxWidth()
+                            //SIGO MODIFICANDO, NO ESTÁ LISTO
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            IconButton(onClick = { /* código para editar la foto */ }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Editar")
+                            }
+
+                            IconButton(onClick = { /* código para descargar la foto */ }) {
+                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Descargar")
+                            }
+
+                            IconButton(onClick = { /* código para eliminar la foto */ }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+                            }
+                        }
+                    }
                 },
                 confirmButton = {
                     Button(onClick = { showDialog.value = false }) {
@@ -200,4 +226,6 @@ fun ImageItem(imageUrl: String) {
             )
         }
     }
+
+
 }
